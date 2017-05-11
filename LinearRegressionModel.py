@@ -16,11 +16,10 @@ def lazy_decorator(function):
 
 
 class LinearRegressionModel:
-    def __init__(self, X, Y, lr, num_features, batch_size):
+    def __init__(self, X, Y, lr, num_features):
         self.X = X
         self.Y = Y
         self.lr = lr
-        self.batch_size = batch_size
         self.num_features = num_features
         self.global_step = tf.Variable(
             0, dtype=tf.int32, trainable=False, name='global_step')
@@ -30,10 +29,10 @@ class LinearRegressionModel:
 
     @lazy_decorator
     def prediction(self):
-        w = tf.Variable(tf.zeros(
-            [self.batch_size, self.num_features]), name='w')
-        b = tf.Variable(tf.zeros([self.batch_size]), name='b')
-        return tf.matmul(self.X, w) + b
+        w = tf.Variable(tf.truncated_normal(
+            [self.num_features]), name='w')
+        b = tf.Variable(0.0, name='b')
+        return tf.reduce_sum(w * self.X) + b
 
     @lazy_decorator
     def optimize(self):
