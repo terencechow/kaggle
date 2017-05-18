@@ -23,25 +23,23 @@ class LinearRegressionModel:
         self.num_features = num_features
         self.global_step = tf.Variable(
             0, dtype=tf.int32, trainable=False, name='global_step')
+        self.error
         self.prediction
         self.optimize
-        self.error
 
     @lazy_decorator
     def prediction(self):
         w = tf.Variable(tf.truncated_normal(
-            [self.num_features]), name='w')
+            [self.num_features, 1]), name='w')
         b = tf.Variable(0.0, name='b')
-        return tf.reduce_sum(w * self.X) + b
+        return tf.matmul(self.X, w) + b
 
     @lazy_decorator
     def optimize(self):
-        loss = tf.square(self.Y - self.prediction, name='loss')
         optimizer = tf.train.GradientDescentOptimizer(
             learning_rate=self.lr)
-        return optimizer.minimize(loss, global_step=self.global_step)
+        return optimizer.minimize(self.error, global_step=self.global_step)
 
     @lazy_decorator
     def error(self):
-        diff = tf.square(self.Y - self.prediction)
-        return tf.reduce_mean(diff)
+        return tf.reduce_mean(tf.square(self.Y - self.prediction, name='loss'))

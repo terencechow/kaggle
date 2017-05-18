@@ -1,13 +1,28 @@
 import pandas as pd
 import tensorflow as tf
 import numpy as np
-from LinearRegressionModel import LinearRegressionModel
 import os
 import math
 import csv
+import sys
+from inspect import getsourcefile
 
-DATA_DIR = 'data/houseprices/'
-MODEL_DIR = 'models/houseprices/'
+# get the root directory so we can import our models without
+# needing it in our python path
+current_path = os.path.abspath(getsourcefile(lambda: 0))
+current_dir = os.path.dirname(current_path)
+current_dir_split = current_dir.rsplit(os.path.sep)
+current_dir_split = current_dir_split[:len(current_dir_split) - 2]
+root_dir = os.path.sep.join(current_dir_split)
+
+sys.path.append(root_dir)
+
+# now we can import our linear model
+from models.LinearRegression import LinearRegressionModel  # noqa: E402
+
+DATA_DIR = current_dir + '/data/'
+CHECKPOINT_DIR = current_dir + '/checkpoint/'
+PREDICTION_DIR = current_dir + '/prediction/'
 
 CONTINUOUS_VARIABLES = [
     'LotFrontage', 'LotArea', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea',
@@ -19,17 +34,6 @@ CONTINUOUS_VARIABLES = [
     'MiscVal', 'MoSold', 'YrSold'
 ]
 
-# CATEGORICAL_VARIABLES = [
-#     'MSSubClass', 'MSZoning', 'Street', 'Alley', 'LotShape', 'LandContour',
-#     'Utilities', 'LotConfig', 'LandSlope', 'Neighborhood', 'Condition1',
-#     'Condition2', 'BldgType', 'HouseStyle', 'OverallQual', 'OverallCond',
-#     'RoofStyle', 'RoofMatl', 'Exterior1st', 'Exterior2nd', 'MasVnrType',
-#     'ExterQual', 'ExterCond', 'Foundation', 'BsmtQual', 'BsmtCond',
-#     'BsmtExposure', 'BsmtFinType1', 'BsmtFinType2', 'Heating', 'HeatingQC',
-#     'CentralAir', 'Electrical', 'KitchenQual', 'Functional', 'FireplaceQu',
-#     'GarageType', 'GarageFinish', 'GarageQual', 'GarageCond', 'PavedDrive',
-#     'PoolQC', 'Fence', 'MiscFeature', 'SaleType', 'SaleCondition'
-# ]
 CATEGORICAL_VARIABLES = {
     'MSSubClass': [160, 70, 40, 75, 45, 80, 50, 20, 85, 180, 30, 120, 90, 60, 190, 150],
     'MSZoning': ['RL', 'FV', 'C (all)', 'RH', 'RM', 'nan'],
@@ -82,7 +86,7 @@ CATEGORICAL_VARIABLES = {
 
 def preprocess_data(filename):
     df = pd.read_csv(DATA_DIR + filename)
-    y = df['SalePrice'].values if 'SalePrice' in df else None
+    y = df['SalePrice'].values.reshape((-1, 1)) if 'SalePrice' in df else None
     features = df[CONTINUOUS_VARIABLES]
 
     # replace NANs with average for continuous variables
@@ -107,30 +111,32 @@ def preprocess_data(filename):
 
 
 def predict():
-    features, _ = preprocess_data('train.csv')
+    features, _ = preprocess_data('test.csv')
 
     num_samples, num_features = features.shape
     X = tf.placeholder(tf.float32, name='X')
     Y = tf.placeholder(tf.float32, name='Y')
 
-    model = LinearRegressionModel(X, Y, 0.0001, num_features)
+    model = LinearRegressionModel(X, Y, 0.00000000001, num_features)
 
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
 
-    features, _ = preprocess_data('test.csv')
+    # features, _ = preprocess_data('test.csv')
 
     with tf.Session() as sess:
         sess.run(init)
-        ckpt = tf.train.get_checkpoint_state(os.path.dirname(MODEL_DIR))
+        ckpt = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
+
         prediction = sess.run(model.prediction, feed_dict={X: features})
-        with open('predictions.csv', 'w') as f:
+
+        with open(PREDICTION_DIR + 'predictions.csv', 'w') as f:
             writer = csv.writer(f)
             writer.writerow(['Id', 'SalePrice'])
             for i in range(len(prediction)):
-                writer.writerow([i + 1461, prediction[i]])
+                writer.writerow([i + 1461, prediction[i][0]])
 
 
 def train():
@@ -148,25 +154,21 @@ def train():
     with tf.Session() as sess:
         sess.run(init)
 
-        ckpt = tf.train.get_checkpoint_state(os.path.dirname(MODEL_DIR))
+        ckpt = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
-        for i in range(50000):
-            total_loss = 0
-            for j in range(num_samples):
-                sess.run(model.optimize, feed_dict={X: features[j], Y: y[j]})
-
-                current_loss, global_step = sess.run(
-                    [model.error, model.global_step], feed_dict={X: features, Y: y})
-
-                total_loss += current_loss
+        for i in range(100000):
+            _, current_loss, global_step = sess.run(
+                [model.optimize, model.error, model.global_step],
+                feed_dict={X: features, Y: y})
 
             print("Epoch {} finished. Average Loss: {}".format(
-                global_step / num_samples, total_loss / num_samples))
+                global_step, current_loss))
 
-            if i > 0 and (global_step / num_samples) % 100 == 0:
-                saver.save(sess, MODEL_DIR, global_step=model.global_step)
+            if i > 0 and global_step % 1000 == 0:
+                saver.save(sess, CHECKPOINT_DIR, global_step=model.global_step)
 
 
 if __name__ == '__main__':
     train()
+    # predict()
