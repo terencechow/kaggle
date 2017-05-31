@@ -1,4 +1,6 @@
 .DS_Store
-*.csv
 *.pyc
-data/
+**/data/*.csv
+checkpoint/
+courses/
+__pycache__
