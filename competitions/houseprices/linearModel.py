@@ -14,10 +14,10 @@ current_dir_split = current_dir.rsplit(os.path.sep)
 current_dir_split = current_dir_split[:len(current_dir_split) - 2]
 root_dir = os.path.sep.join(current_dir_split)
 
-sys.path.append(root_dir)
+sys.path.append(root_dir + '/models')
 
 # now we can import our linear model
-from models.LinearRegression import LinearRegressionModel  # noqa: E402
+from LinearRegression import LinearRegressionModel  # noqa: E402
 
 
 LEARNING_RATE = 0.001
