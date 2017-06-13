@@ -28,7 +28,8 @@ PREDICTION_DIR = current_dir + '/prediction/'
 LOG_DIR = current_dir + '/logs/'
 
 
-def predict(num_hidden_layers, num_neurons):
+def predict(num_hidden_layers, num_neurons,  learning_rate, regularization,
+            dropout):
     features, _, _, _ = get_data('train.csv', 'test.csv')
 
     num_samples, num_features = features.shape
@@ -45,12 +46,21 @@ def predict(num_hidden_layers, num_neurons):
 
     with tf.Session() as sess:
         sess.run(init)
-        ckpt = tf.train.get_checkpoint_state(CHECKPOINT_DIR)
+        ckpt = tf.train.get_checkpoint_state(CHECKPOINT_DIR + 'mlp-{}-hidden-layers-{}-neurons-lr-{:.0e}-regularizer-{:.0e}/'
+                                             .format(num_hidden_layers,
+                                                     num_neurons,
+                                                     learning_rate,
+                                                     regularization))
         if ckpt and ckpt.model_checkpoint_path:
+            print("checkpoint found...loading model...")
             saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            print("No model found! Exiting...")
+            return
 
         prediction = sess.run(model.prediction, feed_dict={X: features})
 
+        print("Making predictions...")
         with open(PREDICTION_DIR + 'mlp-{}-hidden-layers-{}-neurons-predictions.csv'
                   .format(num_hidden_layers, num_neurons), 'w') as f:
             writer = csv.writer(f)
@@ -58,18 +68,16 @@ def predict(num_hidden_layers, num_neurons):
             for i in range(len(prediction)):
                 writer.writerow([i + 1461, prediction[i][0]])
 
-
-X = tf.placeholder(tf.float32, name='X')
-Y = tf.placeholder(tf.float32, name='Y')
+        print("Prediction complete, exiting...")
 
 
 def train(num_hidden_layers, num_neurons, learning_rate, regularization,
-          skip_validation=False):
+          dropout, skip_validation=False):
     train_features, train_y, valid_features, valid_y = get_data('train.csv')
 
     num_samples, num_features = train_features.shape
-    # X = tf.placeholder(tf.float32, name='X')
-    # Y = tf.placeholder(tf.float32, name='Y')
+    X = tf.placeholder(tf.float32, name='X')
+    Y = tf.placeholder(tf.float32, name='Y')
 
     model = MultilayerPerceptionModel(X, Y,
                                       input_size=num_features,
@@ -77,7 +85,7 @@ def train(num_hidden_layers, num_neurons, learning_rate, regularization,
                                       num_neurons=num_neurons,
                                       learning_rate=learning_rate,
                                       regularization=regularization,
-                                      dropout=0.5)
+                                      dropout=dropout)
 
     merged = tf.summary.merge_all()
     init = tf.global_variables_initializer()
@@ -132,7 +140,7 @@ def train(num_hidden_layers, num_neurons, learning_rate, regularization,
 
                     # save the best model
                     saver.save(sess, CHECKPOINT_DIR +
-                               'mlp-{}-hidden-layers-{}-neurons-lr-{:.0e}-regularizer-{:.0e}'
+                               'mlp-{}-hidden-layers-{}-neurons-lr-{:.0e}-regularizer-{:.0e}/'
                                .format(num_hidden_layers,
                                        num_neurons,
                                        learning_rate,
@@ -164,71 +172,15 @@ if __name__ == '__main__':
 
     if args.predict:
         predict(num_hidden_layers=args.num_hidden_layers,
-                num_neurons=args.num_neurons)
+                num_neurons=args.num_neurons,
+                learning_rate=args.learning_rate,
+                regularization=args.regularization,
+                dropout=args.dropout)
     else:
-        # train(
-        #     num_hidden_layers=args.num_hidden_layers,
-        #     num_neurons=args.num_neurons,
-        #     learning_rate=args.learning_rate,
-        #     regularization=args.regularization,
-        #     skip_validation=args.skip_validation)
         train(
-            num_hidden_layers=0,
-            num_neurons=0,
-            learning_rate=0.01,
-            regularization=0.01,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=0,
-            num_neurons=0,
-            learning_rate=0.01,
-            regularization=0.1,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=1,
-            num_neurons=500,
-            learning_rate=0.01,
-            regularization=0.01,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=1,
-            num_neurons=500,
-            learning_rate=0.01,
-            regularization=0.1,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=1,
-            num_neurons=1000,
-            learning_rate=0.001,
-            regularization=0.01,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=1,
-            num_neurons=1000,
-            learning_rate=0.001,
-            regularization=0.1,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=2,
-            num_neurons=500,
-            learning_rate=0.0001,
-            regularization=0.01,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=2,
-            num_neurons=500,
-            learning_rate=0.0001,
-            regularization=0.1,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=2,
-            num_neurons=1000,
-            learning_rate=0.00001,
-            regularization=0.01,
-            skip_validation=args.skip_validation)
-        train(
-            num_hidden_layers=2,
-            num_neurons=1000,
-            learning_rate=0.00001,
-            regularization=0.1,
-            skip_validation=args.skip_validation)
+            num_hidden_layers=args.num_hidden_layers,
+            num_neurons=args.num_neurons,
+            learning_rate=args.learning_rate,
+            regularization=args.regularization,
+            skip_validation=args.skip_validation,
+            dropout=args.dropout)

@@ -18,9 +18,10 @@ class MultilayerPerceptionModel:
         self.global_step = tf.Variable(
             0, dtype=tf.int32, trainable=False, name='global_step')
         self.weights
-        self.error
         self.prediction
-        self.optimize
+        if learning_rate is not None:
+            self.error
+            self.optimize
 
     @lazy_decorator
     def weights(self):

@@ -16,6 +16,9 @@ def add_and_parse_arguments():
     parser.add_argument('--regularization',
                         type=float,
                         help='regularization parameter')
+    parser.add_argument('--dropout',
+                        type=float,
+                        help='probability of keeping a neuron')
     parser.add_argument('--predict',
                         action='store_true',
                         help='Flag to predict')
@@ -37,8 +40,11 @@ def add_and_parse_arguments():
         if args.learning_rate is None:
             parser.error("Learning rate is required when not predicting.")
 
-    if args.learning_rate <= 0 or args.learning_rate >= 1:
-        parser.error("Learning rate must be greater than 0 and less than 1.")
+    if args.learning_rate <= 0:
+        parser.error("Learning rate must be greater than 0.")
+
+    if args.dropout <= 0:
+        parser.error("dropout must be greater than 0.")
 
     if args.regularization < 0:
         parser.error("Regularization must be greater than or equal to 0.")

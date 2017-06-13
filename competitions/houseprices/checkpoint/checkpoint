@@ -1,3 +1,0 @@
-model_checkpoint_path: "/Users/terence/Projects/kaggle/competitions/houseprices/checkpoint/mlp-2-hidden-layers-500-neurons-lr-1e-04-regularizer-1e-01-10000"
-all_model_checkpoint_paths: "/Users/terence/Projects/kaggle/competitions/houseprices/checkpoint/mlp-2-hidden-layers-500-neurons-lr-1e-04-regularizer-1e-01-5000"
-all_model_checkpoint_paths: "/Users/terence/Projects/kaggle/competitions/houseprices/checkpoint/mlp-2-hidden-layers-500-neurons-lr-1e-04-regularizer-1e-01-10000"
